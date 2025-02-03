@@ -6,11 +6,12 @@ import numpy as np
 import torch.nn as nn
 
 from .graph import extract_torch_graph
+from nir.ir.node import NIRNode
 
 
 def extract_nir_graph(
     model: nn.Module,
-    model_map: Callable[[nn.Module], nir.NIRNode],
+    model_map: Callable[[nn.Module, nn.Module | None], nir.NIRNode],
     sample_data: Any,
     model_name: Optional[str] = "model",
     ignore_submodules_of=None,
@@ -47,7 +48,7 @@ def extract_nir_graph(
     # Extract a torch graph given the model
     torch_graph = extract_torch_graph(
         model, sample_data=sample_data, model_name=model_name, model_args=model_fwd_args
-    )
+    ).ignore_tensors()  # TODO: Haven't looked into why this is necessary
 
     if ignore_submodules_of is not None:
         torch_graph = torch_graph.ignore_submodules_of(ignore_submodules_of)
@@ -64,10 +65,17 @@ def extract_nir_graph(
     subgraph_keys = []
     subgraph_input_nodekeys = []
     subgraph_output_nodekeys = []
+
+    # Store the previous node
+    prev_node = NIRNode | None
+
     # Get all the NIR nodes
     for indx, node in enumerate(torch_graph.node_list):
         # Convert the node type to NIR subgraph
-        mapped_node = model_map(node.elem)
+        mapped_node = model_map(node.elem, prev_node)
+
+        # Update the previous node
+        prev_node = node.elem
 
         if isinstance(mapped_node, nir.NIRGraph):
             subgraph_keys.append(node.name)
