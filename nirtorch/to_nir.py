@@ -11,7 +11,7 @@ from nir.ir.node import NIRNode
 
 def extract_nir_graph(
     model: nn.Module,
-    model_map: Callable[[nn.Module, nn.Module | None], nir.NIRNode],
+    model_map: Callable[[nn.Module, Optional[nn.Module]], nir.NIRNode],
     sample_data: Any,
     model_name: Optional[str] = "model",
     ignore_submodules_of=None,
